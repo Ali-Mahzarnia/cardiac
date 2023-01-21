@@ -1,0 +1,469 @@
+---
+title: "Cardiac_CT Basic: both diets"
+author: "Alex Badea"
+date: "01/17/23"
+output: pdf_document
+toc: true
+---
+
+---
+# Data Summary
+
+
+#We use microCT in mice on a HFD to compare cardiac metric for the following genotypes:  APOE2, APOE3, APOE4, APOE-/-
+
+
+
+```{r setup, include=TRUE, message=FALSE, echo=FALSE, warning = FALSE}
+
+
+knitr::opts_chunk$set(echo=FALSE,warning = FALSE)
+library(tidyverse)
+#library(export)
+library(gridExtra)
+library(scales)
+library(ggplot2)
+library(cowplot)
+library(gplots)
+library(tidyverse)
+library(patternplot)
+library(lme4)
+library(visreg)
+library(tidyr)
+library(magrittr) 
+library(dplyr)
+library(ggpubr)
+library(lme4)
+library(lsmeans)
+library(emmeans)
+library(multcomp)
+library(zoo)
+#knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, echo = FALSE, fig.height=4, fig.width=16, out.width = "80%")
+
+data <- read.csv("/Users/alex/AlexBadea_MyCode/cardiac/CardiacAnalysis050322.csv")
+data<-read.csv("/Users/alex/AlexBadea_MyCode/cardiac/Cardiac_CT_011723.csv")
+
+
+outpath='/Users/alex/AlexBadea_MyCode/cardiac/Figures/'
+prefix="Basic_"
+
+data<-na.omit(data)
+data <- data %>%
+   filter(Genotype != "E2HN" )
+data <- data %>%
+   filter(Genotype != "E3HN" )
+data <- data %>%
+   filter(Genotype != "E4HN" )
+#data <- data %>%
+#   filter(Genotype != "KO" )
+
+
+count <- data %>%
+  #select(Sex, Diet, Genotype) %>%
+  group_by(Diet, Genotype, Sex) %>%
+  summarise(count = n())
+
+print("All data set")
+print(count)
+
+data1 <- data %>% 
+  filter(Age <= 17 )  
+
+#data<-data1
+
+print("Age <17")
+count <- data1 %>%
+  #select(Sex, Diet, Genotype) %>%
+  group_by(Diet, Genotype, Sex) %>%
+  summarise(count = n())
+
+print(count)
+
+
+#data <- data %>%
+ #  filter(Diet != "CTRL" )
+
+count <- data %>%
+  #select(Sex, Diet, Genotype) %>%
+  group_by(Diet, Genotype, Sex) %>%
+  summarise(count = n())
+
+print(count)
+#filter(Genotype %in% c('E2HN', 'E3HN', 'E4HN')) %>%
+  #filter(!is.na(EDLVV))
+
+
+
+# # separating by sex
+geno_combined <- data
+combo_f <- geno_combined %>%
+  filter(Sex == "Female")
+combo_m <- geno_combined %>%
+  filter(Sex == "Male")
+
+
+dodge <- position_dodge(width = 1)
+
+mywidth<-8
+myheight<-4
+
+```
+
+
+# Plots for all cardiac metrics
+
+
+
+```{r FA plots, echo=FALSE, warning=FALSE}
+
+count <- data %>%
+  #select(Sex, Diet, Genotype) %>%
+  group_by(Diet, Genotype, Sex) %>%
+  summarise(count = n())
+
+# count <- data %>%
+#   #select(Sex, Diet, Genotype) %>%
+#   group_by(Diet, Genotype, Sex) %>%
+#   summarise(count = n())
+
+
+
+mycolors <- c('blueviolet', 'chartreuse1', 'red', 'azure3')
+plot1a<-ggplot(data, aes(x=Genotype, y=Diastolic_LV_Volume, fill = Sex, alpha=Sex)) +
+  geom_violin(inherit.aes=TRUE,position=dodge) +
+  scale_color_manual(values=mycolors)+
+  scale_fill_manual(values=mycolors)+
+  #facet_grid(. ~ Diet)  +
+  facet_grid( Sex~Diet)+
+  #facet_wrap(~Diet) +
+  scale_alpha_discrete(range = c(0.4,0.8)) +
+  geom_boxplot(color="black", outlier.color="black", width=0.2, alpha=.8, position=dodge) +
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=2, alpha=0.6, position=dodge)+
+  #geom_jitter(size = 0.1, height = 0, width = 0.1, aes(color = Sex)) + 
+  labs(title = "VOL")+
+  theme_minimal()+
+  background_grid(major = 'xy', minor = "none") + # add thin horizontal lines 
+  panel_border() + 
+  theme_bw()+
+  labs(x = "genotype", y = "Diastolic_LV_Volume", title = "Diastolic_LV_Volume ") +
+  stat_summary(fun.y=median, geom="point", size=2, color="black") +
+  theme(legend.position="bottom")+
+  theme_bw() 
+ 
+ggsave(paste(outpath,prefix, 'Diastolic_LV_Volume_011723_CTRL_HFD.pdf',sep=''), plot = last_plot(), device='pdf', scale=1, width=mywidth, height=myheight, unit=c("in"), dpi=200)
+
+
+
+
+plot1b<-ggplot(data, aes(x=Genotype, y=Systolic_LV_Volume, fill = Sex, alpha=Sex)) +
+  geom_violin(inherit.aes=TRUE,position=dodge) +
+  scale_color_manual(values=mycolors)+
+  scale_fill_manual(values=mycolors)+
+  #facet_grid(. ~ Diet)  +
+  facet_grid( Sex~Diet)+
+  #facet_wrap(~Diet) +
+  scale_alpha_discrete(range = c(0.4,0.8)) +
+  geom_boxplot(color="black", outlier.color="black", width=0.2, alpha=.8, position=dodge) +
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=2, alpha=0.6, position=dodge)+
+  #geom_jitter(size = 0.1, height = 0, width = 0.1, aes(color = Sex)) + 
+  labs(title = "VOL")+
+  theme_minimal()+
+  background_grid(major = 'xy', minor = "none") + # add thin horizontal lines 
+  panel_border() + 
+  theme_bw()+
+  labs(x = "genotype", y = "Systolic_LV_Volume", title = "Systolic_LV_Volume ") +
+  stat_summary(fun.y=median, geom="point", size=2, color="black") +
+  theme(legend.position="bottom")+
+  theme_bw() 
+ 
+ggsave(paste(outpath,prefix,'Systolic_LV_Volume_011723_CTRL_HFD.pdf.pdf',sep=''), plot = last_plot(), device='pdf', scale=1, width=mywidth, height=myheight, unit=c("in"), dpi=200)
+  
+plot1c<-ggplot(data, aes(x=Genotype, y=Stroke_Volume, fill = Sex, alpha=Sex)) +
+  geom_violin(inherit.aes=TRUE,position=dodge) +
+  scale_color_manual(values=mycolors)+
+  scale_fill_manual(values=mycolors)+
+  #facet_grid(. ~ Diet)  +
+  facet_grid( Sex~Diet)+
+  #facet_wrap(~Diet) +
+  scale_alpha_discrete(range = c(0.4,0.8)) +
+  geom_boxplot(color="black", outlier.color="black", width=0.2, alpha=.8, position=dodge) +
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=2, alpha=0.6, position=dodge)+
+  #geom_jitter(size = 0.1, height = 0, width = 0.1, aes(color = Sex)) + 
+  labs(title = "VOL")+
+  theme_minimal()+
+  background_grid(major = 'xy', minor = "none") + # add thin horizontal lines 
+  panel_border() + 
+  theme_bw()+
+  labs(x = "genotype", y = "Stroke_Volume", title = "Stroke_Volume ") +
+  stat_summary(fun.y=median, geom="point", size=2, color="black") +
+  theme(legend.position="bottom")+
+  theme_bw() 
+ 
+ggsave(paste(outpath,prefix, 'Stroke_Volume_011723_CTRL_HFD.pdf.pdf',sep=''), plot = last_plot(), device='pdf', scale=1, width=mywidth, height=myheight, unit=c("in"), dpi=200)
+
+
+  
+plot1d<-ggplot(data, aes(x=Genotype, y=Ejection_Fraction, fill = Sex, alpha=Sex)) +
+  geom_violin(inherit.aes=TRUE,position=dodge) +
+  scale_color_manual(values=mycolors)+
+  scale_fill_manual(values=mycolors)+
+  #facet_grid(. ~ Diet)  +
+  facet_grid( Sex~Diet)+
+  #facet_wrap(~Diet) +
+  scale_alpha_discrete(range = c(0.4,0.8)) +
+  geom_boxplot(color="black", outlier.color="black", width=0.2, alpha=.8, position=dodge) +
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=2, alpha=0.6, position=dodge)+
+  #geom_jitter(size = 0.1, height = 0, width = 0.1, aes(color = Sex)) + 
+  labs(title = "VOL")+
+  theme_minimal()+
+  background_grid(major = 'xy', minor = "none") + # add thin horizontal lines 
+  panel_border() + 
+  theme_bw()+
+  labs(x = "Genotype", y = "Ejection_Fraction", title = "Ejection_Fraction") +
+  stat_summary(fun.y=median, geom="point", size=2, color="black") +
+  theme(legend.position="bottom")+
+  theme_bw() 
+ 
+ggsave(paste(outpath, prefix, 'Ejection_Fraction_011723_CTRL_HFD.pdf',sep=''), plot = last_plot(), device='pdf', scale=1, width=mywidth, height=myheight, unit=c("in"), dpi=200)
+
+
+plot1e<-ggplot(data, aes(x=Genotype, y=Heart_Rate, fill = Sex, alpha=Sex)) +
+  geom_violin(inherit.aes=TRUE,position=dodge) +
+  scale_color_manual(values=mycolors)+
+  scale_fill_manual(values=mycolors)+
+  #facet_grid(. ~ Diet)  +
+  facet_grid( Sex~Diet)+
+  #facet_wrap(~Diet) +
+  scale_alpha_discrete(range = c(0.4,0.8)) +
+  geom_boxplot(color="black", outlier.color="black", width=0.2, alpha=.8, position=dodge) +
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=2, alpha=0.6, position=dodge)+
+  #geom_jitter(size = 0.1, height = 0, width = 0.1, aes(color = Sex)) + 
+  labs(title = "VOL")+
+  theme_minimal()+
+  background_grid(major = 'xy', minor = "none") + # add thin horizontal lines 
+  panel_border() + 
+  theme_bw()+
+  labs(x = "genotype", y = "Heart_Rate", title = "Heart_Rate") +
+  stat_summary(fun.y=median, geom="point", size=2, color="black") +
+  theme(legend.position="bottom")+
+  theme_bw() 
+ 
+ggsave(paste(outpath, prefix, 'Heart_Rate_011723_CTRL_HFD.pdf',sep=''), plot = last_plot(), device='pdf', scale=1, width=mywidth, height=myheight, unit=c("in"), dpi=200)
+
+
+# i=13
+# mytitle<-colnames(data[13])
+# str(mytitle)
+# str(colnames(data[13]))
+
+plot1f<-ggplot(data, aes(x=Genotype, y=Cardiac_Output, fill = Sex, alpha=Sex)) +
+  geom_violin(inherit.aes=TRUE,position=dodge) +
+  scale_color_manual(values=mycolors)+
+  scale_fill_manual(values=mycolors)+
+  #facet_grid(. ~ Diet)  +
+  facet_grid( Sex~Diet)+
+  #facet_wrap(~Diet) +
+  scale_alpha_discrete(range = c(0.4,0.8)) +
+  geom_boxplot(color="black", outlier.color="black", width=0.2, alpha=.8, position=dodge) +
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=2, alpha=0.6, position=dodge)+
+  #geom_jitter(size = 0.1, height = 0, width = 0.1, aes(color = Sex)) + 
+  labs(title = "VOL")+
+  theme_minimal()+
+  background_grid(major = 'xy', minor = "none") + # add thin horizontal lines 
+  panel_border() + 
+  theme_bw()+
+  #labs(x = "Genotype", y = str(colnames(data[i])), title = str(colnames(data[i]))) +
+  labs(x = "Genotype", y = "Cardiac_Output", title = "Cardiac_Output") +
+  stat_summary(fun.y=median, geom="point", size=2, color="black") +
+  theme(legend.position="bottom")+
+  theme_bw() 
+ 
+ggsave(paste(outpath,prefix,'Cardiac_Output_011723_CTRL_HFD.pdf',sep=''), plot = last_plot(), device='pdf', scale=1, width=mywidth, height=myheight, unit=c("in"), dpi=200)
+
+
+
+plot1g<-ggplot(data, aes(x=Genotype, y=Mass, fill = Sex, alpha=Sex)) +
+  geom_violin(inherit.aes=TRUE,position=dodge) +
+  scale_color_manual(values=mycolors)+
+  scale_fill_manual(values=mycolors)+
+  #facet_grid(. ~ Diet)  +
+  facet_grid( Sex~Diet)+
+  #facet_wrap(~Diet) +
+  scale_alpha_discrete(range = c(0.4,0.8)) +
+  geom_boxplot(color="black", outlier.color="black", width=0.2, alpha=.8, position=dodge) +
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=2, alpha=0.6, position=dodge)+
+  #geom_jitter(size = 0.1, height = 0, width = 0.1, aes(color = Sex)) + 
+  labs(title = "VOL")+
+  theme_minimal()+
+  background_grid(major = 'xy', minor = "none") + # add thin horizontal lines 
+  panel_border() + 
+  theme_bw()+
+  #labs(x = "Genotype", y = str(colnames(data[i])), title = str(colnames(data[i]))) +
+  labs(x = "Genotype", y = "Mass", title = "Mass") +
+  stat_summary(fun.y=median, geom="point", size=2, color="black") +
+  theme(legend.position="bottom")+
+  theme_bw() 
+
+ggsave(paste(outpath,prefix,'Mass_011723_CTRL_HFD.pdf',sep=''), plot = last_plot(), device='pdf', scale=1, width=mywidth, height=myheight, unit=c("in"), dpi=200)
+
+
+
+plot1h<-ggplot(data, aes(x=Genotype, y=Age, fill = Sex, alpha=Sex)) +
+  geom_violin(inherit.aes=TRUE,position=dodge) +
+  scale_color_manual(values=mycolors)+
+  scale_fill_manual(values=mycolors)+
+  #facet_grid(. ~ Diet)  +
+  facet_grid( Sex~Diet)+
+  #facet_wrap(~Diet) +
+  scale_alpha_discrete(range = c(0.4,0.8)) +
+  geom_boxplot(color="black", outlier.color="black", width=0.2, alpha=.8, position=dodge) +
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=2, alpha=0.6, position=dodge)+
+  #geom_jitter(size = 0.1, height = 0, width = 0.1, aes(color = Sex)) + 
+  labs(title = "VOL")+
+  theme_minimal()+
+  background_grid(major = 'xy', minor = "none") + # add thin horizontal lines 
+  panel_border() + 
+  theme_bw()+
+  #labs(x = "Genotype", y = str(colnames(data[i])), title = str(colnames(data[i]))) +
+  labs(x = "Genotype", y = "Age", title = "Age") +
+  stat_summary(fun.y=median, geom="point", size=2, color="black") +
+  theme(legend.position="bottom")+
+  theme_bw() 
+
+ggsave(paste(outpath,prefix, 'Age_011723_CTRL_HFD.pdf',sep=''), plot = last_plot(), device='pdf', scale=1, width=mywidth, height=myheight, unit=c("in"), dpi=200)
+
+ 
+
+plot<-ggarrange(plot1a, plot1b, plot1c, plot1d, plot1e, plot1f, plot1g, plot1h,
+         # labels = c("Volume", "FA", "DEG", "CLUS" ),
+          ncol = 1, nrow = 8, common.legend = TRUE, legend="bottom")
+         # ncol = 3, nrow = 3, common.legend = TRUE, legend="bottom")
+
+annotate_figure(plot, top = text_grob("cardiac_metrics_234HN_CTRL_HFD", 
+               color = "black", face = "bold", size = 14))
+
+ggsave(paste(outpath,prefix,'cardiac_metrics_011723_CTRL_HFD.pdf',sep=''), plot = last_plot(), device='pdf', scale=1, width=mywidth, height=myheight, unit=c("in"), dpi=200)
+
+#https://rpubs.com/aaronsc32/regression-confidence-prediction-intervals
+
+#fx_VOL_Probe_d5.lm <- lm(Probe_d5 ~ fx, data = cars)
+#summary(fx_VOL_Probe_d5.lm)
+```
+```{r nariman_stats_maybe, echo='FALSE'}
+lm8 <- lm(Ejection_Fraction ~ factor(Genotype)*factor(Sex)*factor(Diet), data)
+anova(lm8)
+em4 <- emmeans(lm8, list(pairwise ~ factor(Genotype)*factor(Sex)*factor(Diet)), adjust="tukey")
+
+emmeans(lm8, list(pairwise ~ facor(Diet)|factor(Genotype)), adjust="tukey")
+
+emmeans(lm8, list(pairwise ~ facor(Genotype)|factor(Diet)), adjust="tukey")
+
+summary(glht((lm8), emm(pairwise ~ Genotype|Diet )))
+
+#em4 <- na.omit(as.data.frame(em4$`pairwise differences of Genotype, Sex, Diet`)) %>% 
+#   arrange(p.value) %>% 
+#   filter(p.value < 0.05)
+
+#colnames(em4) <- c('comparison','estimate','SE', 'df', 't.ratio', 'p.value')
+# # em4 <- em4 %>% filter(group_similarity(comparison) == 2)
+# print('Significant pairwise differences of genotype, sex, and diet in Systolic_LV_Volume')
+# print(em4)
+
+```
+
+
+```{r fx_VOL_stats, echo='FALSE'}
+
+
+# 
+# sink(paste(outpath, "cardiac_SimpleModels.txt"))
+# lm_EF <- lm(Ejection_Fraction~ Genotype*Sex, data=geno_combined)
+# summary(lm_EF)
+# anova(lm_EF)
+# summary(glht((lm_EF), emm(pairwise ~ Genotype )))
+# 
+# EF.emm <- emmeans(lm_EF  , ~ Genotype , adjust = "sidak")
+# contrast(EF.emm, simple = c("Genotype")) #FDR
+# 
+# lm_EF <- lm(Diastolic_LV_Volume~ Genotype*Sex*Diet, data=geno_combined)
+# summary(lm_EF)
+# anova(lm_EF)
+# summary(glht((lm_EF), emm(pairwise ~ Genotype|Diet )))
+# 
+# EF.emm <- emmeans(lm_EF  , ~ Genotype , adjust = "sidak")
+# contrast(EF.emm, simple = c("Genotype")) #FDR
+# 
+# lm_EF <- lm(Systolic_LV_Volume~ Genotype*Sex, data=geno_combined)
+# summary(lm_EF)
+# anova(lm_EF)
+# summary(glht((lm_EF), emm(pairwise ~ Genotype )))
+# 
+# EF.emm <- emmeans(lm_EF  , ~ Genotype , adjust = "sidak")
+# contrast(EF.emm, simple = c("Genotype")) #FDR
+# 
+# lm_EF <- lm(Stroke_Volume~ Genotype*Sex, data=geno_combined)
+# summary(lm_EF)
+# anova(lm_EF)
+# summary(glht((lm_EF), emm(pairwise ~ Genotype )))
+# 
+# EF.emm <- emmeans(lm_EF  , ~ Genotype , adjust = "sidak")
+# contrast(EF.emm, simple = c("Genotype")) #FDR
+# 
+# lm_EF <- lm(Ejection_Fraction~ Genotype*Sex, data=geno_combined)
+# summary(lm_EF)
+# anova(lm_EF)
+# summary(glht((lm_EF), emm(pairwise ~ Genotype )))
+# 
+# EF.emm <- emmeans(lm_EF  , ~ Genotype , adjust = "sidak")
+# contrast(EF.emm, simple = c("Genotype")) #FDR
+# 
+# lm_EF <- lm(Heart_Rate~ Genotype*Sex, data=geno_combined)
+# summary(lm_EF)
+# anova(lm_EF)
+# summary(glht((lm_EF), emm(pairwise ~ Genotype )))
+# 
+# EF.emm <- emmeans(lm_EF  , ~ Genotype , adjust = "sidak")
+# contrast(EF.emm, simple = c("Genotype")) #FDR
+# 
+# lm_EF <- lm(Cardiac_Output~ Genotype*Sex, data=geno_combined)
+# summary(lm_EF)
+# anova(lm_EF)
+# summary(glht((lm_EF), emm(pairwise ~ Genotype )))
+# 
+# EF.emm <- emmeans(lm_EF  , ~ Genotype*Sex , adjust = "sidak")
+# contrast(EF.emm, simple = c("Genotype", "Sex")) #FDR
+# 
+# 
+# 
+# 
+# 
+# 
+# #33333
+# #sink(paste(outpath, "cardiac_SimpleModels.txt"))
+# #mydata.lm <- lm(Diastolic_LV_Volume ~ Genotype*Sex*Diet*Age, data = geno_combined)
+# #anova(mydata.lm)
+# #summary(glht(mydata.lm, emm(pairwise ~ Genotype|Sex, adjust="sidak"))) #consider save to file
+# #summary(glht(mydata.lm, emm(pairwise ~ Sex| Genotype)))
+# 
+# #3333
+# 
+# 
+# mypairs<-pairs(EF.emm) #_consider save to file
+# pairs(EF.emm, by="Genotype")
+# pairs(EF.emm, by="Sex")
+# 
+# 
+# print('EF')
+# emmip(lm_EF, ~ Genotype | Sex )
+# emmip(lm_EF, ~ Sex | Genotype )
+# emmip(lm_EF, Genotype~ Sex  )
+# 
+# 
+# 
+# plot(EF.emm, by = NULL, comparisons = TRUE, adjust = "mvt",
+# horizontal = FALSE, colors = "darkgreen", main ="fx VOL")
+# ggsave(paste(outpath,'EF_emmeans.pdf',sep=''), plot = last_plot(), device='pdf', scale=1, width=16, height=4, unit=c("in"), dpi=200)
+# sink()
+```
+
