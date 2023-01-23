@@ -1,0 +1,271 @@
+---
+title: "Cardiac_CT HN: both diets"
+author: "Alex Badea"
+date: "01/17/23"
+output: pdf_document
+toc: true
+---
+
+---
+# Data Summary
+
+
+#We use microCT in mice on a HFD to compare cardiac metric for the following genotypes:  APOE2HN, APOE3HN, APOE4HN, APOE-/-
+
+
+
+```{r setup, include=TRUE, message=FALSE, echo=FALSE, warning = FALSE}
+
+
+knitr::opts_chunk$set(echo=FALSE,warning = FALSE)
+library(tidyverse)
+#library(export)
+library(gridExtra)
+library(scales)
+library(ggplot2)
+library(cowplot)
+library(gplots)
+library(tidyverse)
+library(patternplot)
+library(lme4)
+library(visreg)
+library(tidyr)
+library(magrittr) 
+library(dplyr)
+library(ggpubr)
+library(lme4)
+library(lsmeans)
+library(emmeans)
+library(multcomp)
+library(zoo)
+library(xlsx)
+library(readxl)
+library(multcomp)
+
+#knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, echo = FALSE, fig.height=4, fig.width=16, out.width = "80%")
+
+#data <- read.csv("/Users/alex/AlexBadea_MyCode/cardiac/CardiacAnalysis050322.csv")
+data<-read_excel("/Users/ali/Desktop/jan/cardiac/Cardiac_LV_results_01132023.xlsx")
+
+
+outpath='/Users/ali/Desktop/jan/cardiac/Figures/'
+prefix="both_complex_"
+
+# data<-na.omit(data)
+# data <- data %>%
+#    filter(Genotype != "E22" )
+# data <- data %>%
+#    filter(Genotype != "E33" )
+# data <- data %>%
+#    filter(Genotype != "E44" )
+#data <- data %>%
+#   filter(Genotype != "KO" )
+
+
+count <- data %>%
+  #select(Sex, Diet, Genotype) %>%
+  group_by(Diet, Genotype, Sex) %>%
+  summarise(count = n())
+
+print("All data set")
+print(count)
+
+data1 <- data %>% 
+  filter(Age <= 17 )  
+
+print("Age <17")
+count <- data1 %>%
+  #select(Sex, Diet, Genotype) %>%
+  group_by(Diet, Genotype, Sex) %>%
+  summarise(count = n())
+
+print(count)
+
+
+#data <- data %>%
+ #  filter(Diet != "CTRL" )
+
+count <- data %>%
+  #select(Sex, Diet, Genotype) %>%
+  group_by(Diet, Genotype, Sex) %>%
+  summarise(count = n())
+
+print(count)
+#filter(Genotype %in% c('E2HN', 'E3HN', 'E4HN')) %>%
+  #filter(!is.na(EDLVV))
+
+
+
+# # separating by sex
+geno_combined <- data
+combo_f <- geno_combined %>%
+  filter(Sex == "Female")
+combo_m <- geno_combined %>%
+  filter(Sex == "Male")
+
+
+dodge <- position_dodge(width = 1)
+
+mywidth<-8
+myheight<-4
+
+```
+
+
+
+```{r models, echo=FALSE, warning=FALSE}
+data$cardiac_index = as.numeric(data$Cardiac_Output / data$Mass)
+
+HN = data$Genotype
+HN [ HN == "E2HN" |  HN == "E3HN"  | HN == "E4HN" ]= 1 
+HN [ HN != "1" ]= 0 
+data$HN = as.factor(HN)
+
+Geno3 = data$Genotype
+Geno3 [ Geno3 == "E22" |  Geno3 == "E2HN"  ]= 0
+Geno3 [ Geno3 == "E33" |  Geno3 == "E3HN"   ]= 1 
+Geno3 [ Geno3 == "E44" |  Geno3 == "E4HN"   ]= 2 
+Geno3 [ Geno3 == "KO"   ]= 3
+data$Geno3 = as.factor(Geno3)
+
+apoe = data$Genotype
+apoe[ apoe !="KO" ]= 1 
+apoe[ apoe =="KO" ]= 0 
+data$apoe = as.factor(apoe)
+
+data$Sex = as.factor(data$Sex)
+data$Genotype = as.factor(data$Genotype)
+data$Diet = as.factor(data$Diet)
+data$apoe = as.factor(data$apoe)
+data$HN = as.factor( data$HN)
+
+
+
+for (i in 8:15) {
+  
+lm1 <- lm(unlist(data[,i]) ~ Sex*Age*Mass*HN*Geno3, data)
+anova(lm1)
+#write.csv(as.data.frame(anova(lm1)), paste0(outpath,"anova_",colnames(data)[12],".csv"))
+write.xlsx2(as.data.frame(anova(lm1)), paste0(outpath,prefix,"cardiac_anova.xlsx"), sheet =colnames(data)[i],append = TRUE)
+#e ta = eta_squared(lm1)
+eta=effectsize::cohens_f(lm1, alternative='two.sided')
+write.xlsx2(eta, paste0(outpath,prefix,"cardiac_anova.xlsx"), sheet =paste0(colnames(data)[i],"_cohen_"),append = TRUE)
+#em4 <- emmeans(lm1, specs = pairwise ~ Sex|Diet, adjust="tukey")
+#em4=emmeans(aov, list(pairwise ~Sex|Diet), adjust="tukey")
+#pairs(em4)
+#aov <- aov(unlist(data[,i]) ~ Sex*Age*Mass*Diet*Genotype, data)
+#summary(glht(aov, linfct = mcp(Genotype = "Tukey")), emm(pairwise ~  Diet| Genotype),  test = adjusted("fdr"))
+#lsmeans(lm1, pairwise ~ between | within)
+#em4_no_nan <- na.omit(as.data.frame(em4$`pairwise differences of Diet | Sex, Genotype`)) %>% 
+#   arrange(p.value)
+}
+```
+
+# Plots for all cardiac metrics
+
+
+
+```{r FA plots, echo=FALSE, warning=FALSE}
+
+count <- data %>%
+  #select(Sex, Diet, Genotype) %>%
+  group_by(Diet, Genotype, Sex) %>%
+  summarise(count = n())
+
+# count <- data %>%
+#   #select(Sex, Diet, Genotype) %>%
+#   group_by(Diet, Genotype, Sex) %>%
+#   summarise(count = n())
+
+plot_list = vector(mode = "list", length = length(8:15))
+for (i in 8:15) {
+
+mycolors <- c('blueviolet', 'chartreuse1', 'red', 'azure3')
+plot_list[[(i-7)]]<-ggplot(data, aes(x=Geno3, y=unlist(data[,i]), fill = Sex, alpha=Sex)) +
+  geom_violin(inherit.aes=TRUE,position=dodge) +
+  scale_color_manual(values=mycolors)+
+  scale_fill_manual(values=mycolors)+
+  #facet_grid(. ~ Diet)  +
+  facet_grid( Sex~Diet)+
+  #facet_wrap(~Diet) +
+  scale_alpha_discrete(range = c(0.4,0.8)) +
+  geom_boxplot(color="black", outlier.color="black", width=0.2, alpha=.8, position=dodge) +
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=2, alpha=0.6, position=dodge)+
+  #geom_jitter(size = 0.1, height = 0, width = 0.1, aes(color = Sex)) + 
+  labs(title = "VOL")+
+  theme_minimal()+
+  background_grid(major = 'xy', minor = "none") + # add thin horizontal lines 
+  panel_border() + 
+  theme_bw()+
+  labs(x = "genotype", y = paste0(colnames(data)[i]), title = paste0(colnames(data)[i]) ) +
+  stat_summary(fun.y=median, geom="point", size=2, color="black") +
+  theme(legend.position="bottom")+
+  theme_bw() 
+ 
+ggsave(paste0(outpath,prefix, colnames(data)[i], "011723_CTRL_HFD.pdf"), plot = last_plot(), device='pdf', scale=1, width=mywidth, height=myheight, unit=c("in"), dpi=200)
+}
+
+
+
+plot<-ggarrange(plotlist =plot_list ,
+          ncol = 1, nrow = length(plot_list), common.legend = TRUE, legend="bottom")
+
+lastplot=annotate_figure(plot, top = text_grob("cardiac_metrics_234HN_CTRL_HFD", 
+               color = "black", face = "bold", size = 14))
+
+ggsave(paste0(outpath,prefix,'cardiac_metrics_011723_CTRL_HFD.pdf'), plot = lastplot, device='pdf', scale=1, width=mywidth, height=10*myheight, unit=c("in"), dpi=200)
+
+
+
+
+plot_list = vector(mode = "list", length = length(8:15))
+for (i in 8:15) {
+
+mycolors <- c('blueviolet', 'chartreuse1', 'red', 'azure3')
+plot_list[[(i-7)]]<-ggplot(data, aes(x=Geno3, y=unlist(data[,i]), fill = HN, alpha=HN)) +
+  geom_violin(inherit.aes=TRUE,position=dodge) +
+  scale_color_manual(values=mycolors)+
+  scale_fill_manual(values=mycolors)+
+  #facet_grid(. ~ Diet)  +
+  facet_grid( Sex~Diet)+
+  #facet_wrap(~Diet) +
+  scale_alpha_discrete(range = c(0.4,0.8)) +
+  geom_boxplot(color="black", outlier.color="black", width=0.2, alpha=.8, position=dodge) +
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=2, alpha=0.6, position=dodge)+
+  #geom_jitter(size = 0.1, height = 0, width = 0.1, aes(color = Sex)) + 
+  labs(title = "VOL")+
+  theme_minimal()+
+  background_grid(major = 'xy', minor = "none") + # add thin horizontal lines 
+  panel_border() + 
+  theme_bw()+
+  labs(x = "genotype", y = paste0(colnames(data)[i]), title = paste0(colnames(data)[i]) ) +
+  stat_summary(fun.y=median, geom="point", size=2, color="black") +
+  theme(legend.position="bottom")+
+  theme_bw() 
+ 
+ggsave(paste0(outpath,prefix,"HN_color" ,colnames(data)[i], "011723_CTRL_HFD.pdf"), plot = last_plot(), device='pdf', scale=1, width=mywidth, height=myheight, unit=c("in"), dpi=200)
+}
+
+
+
+plot<-ggarrange(plotlist =plot_list ,
+          ncol = 1, nrow = length(plot_list), common.legend = TRUE, legend="bottom")
+
+lastplot=annotate_figure(plot, top = text_grob("cardiac_metrics_234HN_CTRL_HFD", 
+               color = "black", face = "bold", size = 14))
+
+ggsave(paste0(outpath,prefix,"HN_color",'cardiac_metrics_011723_CTRL_HFD.pdf'), plot = lastplot, device='pdf', scale=1, width=mywidth, height=10*myheight, unit=c("in"), dpi=200)
+
+
+
+
+
+
+
+
+
+
+
+```
+
