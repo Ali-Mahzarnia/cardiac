@@ -251,8 +251,6 @@ for (i in c(9:15,19,20)  ) {
 lm1 <- lm(unlist(data[,i]) ~ Sex*Age*Mass*HN*Geno3, data)
 anova(lm1)
 
-#lm1 <- lm(unlist(data[,i]) ~ Sex+Age+Mass+HN+Geno3, data)
-#anova(lm1)
 
 #write.csv(as.data.frame(anova(lm1)), paste0(outpath,"anova_",colnames(data)[12],".csv"))
 write.xlsx2(as.data.frame(anova(lm1)), paste0(outpath,prefix,"cardiac_anova.xlsx"), sheet =colnames(data)[i],append = TRUE)
@@ -268,7 +266,7 @@ write.xlsx2(eta, paste0(outpath,prefix,"cardiac_anova.xlsx"), sheet =paste0(coln
 #em4_no_nan <- na.omit(as.data.frame(em4$`pairwise differences of Diet | Sex, Genotype`)) %>% 
 #   arrange(p.value)
 
-lm1 <- lm(unlist(data[,i]) ~ Sex*Age*Diet*HN*Geno3, data)
+lm1 <- lm(unlist(data[,i]) ~ Sex*Diet*HN*Geno3+Age, data)
 anova(lm1)
 
 res<-emmeans(lm1, list(pairwise ~ factor(Geno3)|factor(Diet)*factor(Sex)), adjust="tukey")
