@@ -294,26 +294,22 @@ write.xlsx2(eta, paste0(outpath,prefix,"cardiac_anova.xlsx"), sheet =paste0(coln
 lm1 <- lm(unlist(data[,i]) ~ Diet*Geno3+Age , data)
 anova(lm1)
 
-#res<-emmeans(lm1, list(pairwise ~ factor(Geno3)|factor(Diet)*factor(Sex)), adjust="tukey")
-#contrast(res[[1]], "eff", by = "Geno3")
-
 posthoc2 <- na.omit((emmeans(lm1, list(pairwise ~ Diet|Geno3), adjust="tukey")$`pairwise differences of Diet | Geno3`)) 
 
-#emms1 <- emmeans(lm1, ~ Geno3*Diet | Sex)
-#con1 <- contrast(emms1, interaction = "pairwise")
-#pairs(con1, by = NULL)
-
-######Nariman#####
-
-# 
-# lm1 <- lm(unlist(data[,i]) ~ Sex*Age*Geno3*Diet, data)
-# anova(lm1)
-# res<-emmeans(lm1, list(pairwise ~ Geno3 |Sex*Diet), adjust="tukey")
-# em=contrast(res[[1]], method = "trt.vs.ctrl"  )
-
-########
 
 write.xlsx2(posthoc2, paste0(outpath,prefix,"cardiac_anova.xlsx"), sheet =paste0(colnames(data)[i],"_emmeans_"),append = TRUE)
+
+
+lm1 <- lm(unlist(data[,i]) ~ Diet*Geno3*HN+Age , data)
+anova(lm1)
+
+posthoc2 <- na.omit((emmeans(lm1, list(pairwise ~ HN|Geno3*Diet), adjust="tukey")$`pairwise differences of HN | Geno3, Diet`)) 
+
+
+write.xlsx2(posthoc2, paste0(outpath,prefix,"cardiac_anova.xlsx"), sheet =paste0(colnames(data)[i],"_HN_emmeans_"),append = TRUE)
+
+
+
 }
 ```
 
