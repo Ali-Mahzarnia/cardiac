@@ -1,0 +1,588 @@
+---
+title: "Cardiac_CT HN: both diets"
+author: "Alex Badea"
+date: "01/17/23"
+output: pdf_document
+toc: true
+---
+
+---
+# Data Summary
+
+#emms1 <- emmeans(fit1, ~ A*B | C)
+#con1 <- contrast(emms1, interaction = "pairwise")
+#pairs(con1, by = NULL)
+
+#We use microCT in mice on a HFD to compare cardiac metric for the following genotypes:  APOE2HN, APOE3HN, APOE4HN, APOE-/-
+
+
+
+```{r setup, include=TRUE, message=FALSE, echo=FALSE, warning = FALSE}
+
+
+knitr::opts_chunk$set(echo=FALSE,warning = FALSE)
+library(tidyverse)
+#library(export)
+library(gridExtra)
+library(scales)
+library(ggplot2)
+library(cowplot)
+library(gplots)
+library(tidyverse)
+library(patternplot)
+library(lme4)
+library(visreg)
+library(tidyr)
+library(magrittr) 
+library(dplyr)
+library(ggpubr)
+library(lme4)
+library(lsmeans)
+library(emmeans)
+library(multcomp)
+library(zoo)
+library(xlsx)
+library(readxl)
+library(multcomp)
+library(readxl)
+library(ltm)
+library(TSDT)
+library(reshape2)
+library(psych)
+library(ppcor)
+library(stats)
+
+#knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, echo = FALSE, fig.height=4, fig.width=16, out.width = "80%")
+
+#data<-read_excel("/Users/alex/AlexBadea_MyCode/nariman_ali/cardiac-main/combined/Cardiac_LV_results_01132023.xlsx")
+data<-read.csv("LV_results_04212023_CNN.csv")
+outpath='output/'
+
+
+prefix="Basic_and_HN_Agelt17_"
+date='042623'
+
+# data<-na.omit(data)
+# data <- data %>%
+#    filter(Genotype != "E22" )
+# data <- data %>%
+#    filter(Genotype != "E33" )
+# data <- data %>%
+#    filter(Genotype != "E44" )
+#data <- data %>%
+#   filter(Genotype != "KO" )
+
+
+
+
+
+
+
+count <- data %>%
+  #select(Sex, Diet, Genotype) %>%
+  group_by(Diet, Genotype, Sex) %>%
+  summarise(count = n())
+
+print("All data set")
+print(count)
+
+data1 <- data %>% 
+  filter(Age <= 17 )  
+
+print("Age <17")
+count <- data1 %>%
+  #select(Sex, Diet, Genotype) %>%
+  group_by(Diet, Genotype, Sex) %>%
+  summarise(count = n())
+
+print(count)
+
+
+#data <- data %>%
+ #  filter(Diet != "CTRL" )
+
+count <- data %>%
+  #select(Sex, Diet, Genotype) %>%
+  group_by(Diet, Genotype, Sex) %>%
+  summarise(count = n())
+
+print(count)
+#filter(Genotype %in% c('E2HN', 'E3HN', 'E4HN')) %>%
+  #filter(!is.na(EDLVV))
+write.xlsx2(as.data.frame(count), paste0(outpath,prefix,"all_animals.xlsx"), sheet ='animals',append = TRUE)
+
+
+# # separating by sex
+geno_combined <- data
+combo_f <- geno_combined %>%
+  filter(Sex == "Female")
+combo_m <- geno_combined %>%
+  filter(Sex == "Male")
+
+
+dodge <- position_dodge(width = 1)
+
+mywidth<-8
+myheight<-4
+
+
+```
+
+
+
+```{r models, echo=FALSE, warning=FALSE}
+data$cardiac_index = as.numeric(data$Cardiac_Output /data$Mass)
+
+HN = data$Genotype
+HN [ HN == "E2HN" |  HN == "E3HN"  | HN == "E4HN" ]= 1 
+HN [ HN != "1" ]= 0 
+data$HN = as.factor(HN)
+
+Geno3 = data$Genotype
+Geno3 [ Geno3 == "E22" |  Geno3 == "E2HN"  ]= 'APOE2'
+Geno3 [ Geno3 == "E33" |  Geno3 == "E3HN"   ]= 'APOE3'
+Geno3 [ Geno3 == "E44" |  Geno3 == "E4HN"   ]= 'APOE4' 
+Geno3 [ Geno3 == "KO"   ]= 'KO'
+data$Geno3 = as.factor(Geno3)
+
+apoe = data$Genotype
+apoe[ apoe !="KO" ]= 1 
+apoe[ apoe =="KO" ]= 0 
+data$apoe = as.factor(apoe)
+
+data$Sex = as.factor(data$Sex)
+data$Genotype = as.factor(data$Genotype)
+data$Diet = as.factor(data$Diet)
+data$apoe = as.factor(data$apoe)
+data$HN = as.factor( data$HN)
+
+
+#age cut off points and filterig
+
+detection = function(x){
+quartiles <- quantile(x, probs=c(.25, .75), na.rm = FALSE)
+IQR <- IQR(data$Age)
+Lower <- quartiles[1] - 1.5*IQR
+Upper <- quartiles[2] + 1.5*IQR
+return( list ("index" =  which( Upper<x | x <  Lower  ) ,  "bounds" = c(Lower,Upper)   ))
+}
+
+
+data = as.data.frame(data)
+dim(data)
+data= na.omit(data)
+for (gen in unique(data$Geno3)) {
+  for (sex in unique(data$Sex)) {
+    temp = data[data$Geno3==gen & data$Sex==sex,]
+    
+   index =  detection(temp$Age)$index
+   if (length(index)>0){
+   temp  =temp[-index, ]}
+   
+   assign(paste0(gen,sex,"_data"), temp) 
+   print(paste("cut of of ",gen," " ,sex, " is ", detection(temp$Age)$bounds[1] , "-",  detection(temp$Age)$bounds[2] ) )
+  }
+}
+
+no_outlr_data = NA
+
+for (gen in unique(data$Geno3)) {
+  for (sex in unique(data$Sex)) {
+
+   tempp = get(paste0(gen,sex,"_data")) 
+no_outlr_data = rbind(no_outlr_data, tempp)
+  }
+}
+
+
+
+
+
+
+dim(data)
+dim(no_outlr_data)
+data = no_outlr_data
+data= na.omit(data)
+
+
+
+count <- data %>%
+  #select(Sex, Diet, Genotype) %>%
+  group_by(Diet, Genotype, Sex) %>%
+  summarise(count = n())
+
+
+write.xlsx2(as.data.frame(count), paste0(outpath,prefix,"filtered_animals.xlsx"), sheet ='animals',append = TRUE)
+
+
+
+
+######### mass and diet or maybe only one ?
+
+diet_num  = unfactor( data$Diet)
+diet_num[diet_num=="HFD"] = 1
+diet_num[diet_num=="CTRL"] = 0
+diet_num = as.numeric(diet_num)
+cor(as.numeric(data$Mass) , diet_num )
+cor = biserial.cor(as.numeric(data$Mass), as.factor(data$Diet))
+test_cor = cor.test(as.numeric(data$Mass), diet_num)
+print(paste("The Biserial correlation between Diet and Mass is" ,cor ))
+ print(paste(" with p-value",  test_cor$p.value))
+
+
+#correlation
+corrs = cor(data[,9:15])
+print(corrs)
+cormatrix = arrange( melt(corrs), -abs(value) )
+cor_plot = ggplot(cormatrix, aes(Var1, Var2) ) + geom_tile(aes(fill = value), colour = "white") + scale_fill_gradient(low = "white", high = "steelblue")
+plot(cor_plot)
+
+
+
+#partial correlation: when controlling for other variables
+corrs = pcor(data[,9:15])
+print(corrs)
+cormatrix = arrange( melt(corrs$estimate), -abs(value) )
+cor_plot = ggplot(cormatrix, aes(Var1, Var2) ) + geom_tile(aes(fill = value), colour = "white") + scale_fill_gradient(low = "white", high = "steelblue")
+plot(cor_plot)
+
+
+pc = prcomp(data[,9:15])
+plot(pc)
+print(summary(pc))
+data$PC1 = pc$x[,1] 
+data$PC2 = pc$x[,2] 
+
+for (i in c(9:15,19,20)  ) {
+  
+lm1 <- lm(unlist(data[,i]) ~ Sex*Age*Mass*HN*Geno3, data)
+anova(lm1)
+
+
+#write.csv(as.data.frame(anova(lm1)), paste0(outpath,"anova_",colnames(data)[12],".csv"))
+write.xlsx2(as.data.frame(anova(lm1)), paste0(outpath,prefix,"cardiac_anova.xlsx"), sheet =colnames(data)[i],append = TRUE)
+#e ta = eta_squared(lm1)
+eta=effectsize::cohens_f(lm1, alternative='two.sided')
+write.xlsx2(eta, paste0(outpath,prefix,"cardiac_anova.xlsx"), sheet =paste0(colnames(data)[i],"_cohen_"),append = TRUE)
+#em4 <- emmeans(lm1, specs = pairwise ~ Sex|Diet, adjust="tukey")
+#em4=emmeans(aov, list(pairwise ~Sex|Diet), adjust="tukey")
+#pairs(em4)
+#aov <- aov(unlist(data[,i]) ~ Sex*Age*Mass*Diet*Genotype, data)
+#summary(glht(aov, linfct = mcp(Genotype = "Tukey")), emm(pairwise ~  Diet| Genotype),  test = adjusted("fdr"))
+#lsmeans(lm1, pairwise ~ between | within)
+#em4_no_nan <- na.omit(as.data.frame(em4$`pairwise differences of Diet | Sex, Genotype`)) %>% 
+#   arrange(p.value)
+
+
+#em4 <- emmeans(lm1, specs = pairwise ~ Sex|Diet, adjust="tukey")
+#em4=emmeans(aov, list(pairwise ~Sex|Diet), adjust="tukey")
+#pairs(em4)
+#aov <- aov(unlist(data[,i]) ~ Sex*Age*Mass*Diet*Genotype, data)
+#summary(glht(aov, linfct = mcp(Genotype = "Tukey")), emm(pairwise ~  Diet| Genotype),  test = adjusted("fdr"))
+#lsmeans(lm1, pairwise ~ between | within)
+#em4_no_nan <- na.omit(as.data.frame(em4$`pairwise differences of Diet | Sex, Genotype`)) %>% 
+#   arrange(p.value)
+
+
+lm1 <- lm(unlist(data[,i]) ~ Diet*Geno3+Age , data)
+anova(lm1)
+
+#res<-emmeans(lm1, list(pairwise ~ factor(Geno3)|factor(Diet)*factor(Sex)), adjust="tukey")
+#contrast(res[[1]], "eff", by = "Geno3")
+
+posthoc2 <- na.omit((emmeans(lm1, list(pairwise ~ Diet|Geno3), adjust="tukey")$`emmeans of Diet | Geno3`)) 
+
+#emms1 <- emmeans(lm1, ~ Geno3*Diet | Sex)
+#con1 <- contrast(emms1, interaction = "pairwise")
+#pairs(con1, by = NULL)
+
+######Nariman#####
+
+# 
+# lm1 <- lm(unlist(data[,i]) ~ Sex*Age*Geno3*Diet, data)
+# anova(lm1)
+# res<-emmeans(lm1, list(pairwise ~ Geno3 |Sex*Diet), adjust="tukey")
+# em=contrast(res[[1]], method = "trt.vs.ctrl"  )
+
+########
+
+write.xlsx2(posthoc2, paste0(outpath,prefix,"cardiac_anova.xlsx"), sheet =paste0(colnames(data)[i],"_emmeans_"),append = TRUE)
+}
+```
+
+# Plots for all cardiac metrics
+
+
+
+```{r FA plots, echo=FALSE, warning=FALSE}
+
+count <- data %>%
+  #select(Sex, Diet, Genotype) %>%
+  group_by(Diet, Genotype, Sex) %>%
+  summarise(count = n())
+
+# count <- data %>%
+#   #select(Sex, Diet, Genotype) %>%
+#   group_by(Diet, Genotype, Sex) %>%
+#   summarise(count = n())
+data$weight = data$Mass
+plot_list = vector(mode = "list", length = length(c(8:15,19,20,21)))
+for (i in c(8:15,19,20,21)) {
+
+mycolors <- c('blueviolet', 'chartreuse1', 'red', 'azure3')
+plot_list[[(i-7)]]<-ggplot(data, aes(x=Geno3, y=unlist(data[,i]), fill = Sex, alpha=Sex)) +
+  geom_violin(inherit.aes=TRUE,position=dodge) +
+  scale_color_manual(values=mycolors)+
+  scale_fill_manual(values=mycolors)+
+  #facet_grid(. ~ Diet)  +
+  facet_grid( Sex~Diet)+
+  #facet_wrap(~Diet) +
+  scale_alpha_discrete(range = c(0.4,0.8)) +
+  geom_boxplot(color="black", outlier.color="black", width=0.2, alpha=.8, position=dodge) +
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=2, alpha=0.6, position=dodge)+
+  #geom_jitter(size = 0.1, height = 0, width = 0.1, aes(color = Sex)) + 
+  labs(title = "VOL")+
+  theme_minimal()+
+  background_grid(major = 'xy', minor = "none") + # add thin horizontal lines 
+  panel_border() + 
+  theme_bw()+
+  labs(x = "genotype", y = paste0(colnames(data)[i]), title = paste0(colnames(data)[i]) ) +
+  stat_summary(fun.y=median, geom="point", size=2, color="black") +
+  theme(legend.position="bottom")+
+  theme_bw() 
+ 
+ggsave(paste0(outpath,prefix, colnames(data)[i], "011723_CTRL_HFD.pdf"), plot = last_plot(), device='pdf', scale=1, width=mywidth, height=myheight, unit=c("in"), dpi=200)
+}
+
+
+
+plot<-ggarrange(plotlist =plot_list ,
+          ncol = 1, nrow = length(plot_list), common.legend = TRUE, legend="bottom")
+
+lastplot=annotate_figure(plot, top = text_grob("cardiac_metrics_234HN_CTRL_HFD", 
+               color = "black", face = "bold", size = 14))
+
+ggsave(paste0(outpath,prefix,'cardiac_metrics_011723_CTRL_HFD.pdf'), plot = lastplot, device='pdf', scale=1, width=mywidth, height=10*myheight, unit=c("in"), dpi=200)
+
+
+
+
+plot_list = vector(mode = "list", length = length(c(8:15,19,20,21)))
+for (i in c(8:15,19,20,21)) {
+
+mycolors <- c('blueviolet', 'chartreuse1', 'red', 'azure3')
+plot_list[[(i-7)]]<-ggplot(data, aes(x=Geno3, y=unlist(data[,i]), fill = HN, alpha=HN)) +
+  geom_violin(inherit.aes=TRUE,position=dodge) +
+  scale_color_manual(values=mycolors)+
+  scale_fill_manual(values=mycolors)+
+  #facet_grid(. ~ Diet)  +
+  facet_grid( Sex~Diet)+
+  #facet_wrap(~Diet) +
+  scale_alpha_discrete(range = c(0.4,0.8)) +
+  geom_boxplot(color="black", outlier.color="black", width=0.2, alpha=.8, position=dodge) +
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=2, alpha=0.6, position=dodge)+
+  #geom_jitter(size = 0.1, height = 0, width = 0.1, aes(color = Sex)) + 
+  labs(title = "VOL")+
+  theme_minimal()+
+  background_grid(major = 'xy', minor = "none") + # add thin horizontal lines 
+  panel_border() + 
+  theme_bw()+
+  labs(x = "genotype", y = paste0(colnames(data)[i]), title = paste0(colnames(data)[i]) ) +
+  stat_summary(fun.y=median, geom="point", size=2, color="black") +
+  theme(legend.position="bottom")+
+  theme_bw() 
+ 
+ggsave(paste0(outpath,prefix,"HN_color" ,colnames(data)[i], "011723_CTRL_HFD.pdf"), plot = last_plot(), device='pdf', scale=1, width=mywidth, height=myheight, unit=c("in"), dpi=200)
+}
+
+
+
+plot<-ggarrange(plotlist =plot_list ,
+          ncol = 1, nrow = length(plot_list), common.legend = TRUE, legend="bottom")
+
+lastplot=annotate_figure(plot, top = text_grob("cardiac_metrics_234HN_CTRL_HFD", 
+               color = "black", face = "bold", size = 14))
+
+ggsave(paste0(outpath,prefix,"HN_color",'cardiac_metrics_011723_CTRL_HFD.pdf'), plot = lastplot, device='pdf', scale=1, width=mywidth, height=10*myheight, unit=c("in"), dpi=200)
+
+
+
+
+
+
+
+
+mycolors <- c('blueviolet', 'chartreuse1', 'red', 'azure3')
+plot_list = vector(mode = "list", length = length(c(8:15,19,20,21)))
+for (i in c(8:15,19,20,21)) {
+
+  plot_list[[(i-7)]]<-ggplot(data, aes(x=Geno3, y=unlist(data[,i]), fill = Diet, alpha=Diet)) +
+  geom_violin(inherit.aes=TRUE,position=dodge) +
+  scale_color_manual(values=mycolors)+
+  scale_fill_manual(values=mycolors)+
+  ##facet_grid(. ~ Sex)  +
+  #facet_grid( Sex~Diet)+
+  #facet_wrap(~Diet) +
+  scale_alpha_discrete(range = c(0.4,0.8)) +
+  geom_boxplot(color="black", outlier.color="black", width=0.2, alpha=.8, position=dodge) +
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=2, alpha=0.6, position=dodge)+
+  #geom_dotplot(binaxis='y', stackdir='center', dotsize=1, alpha=0.5, position=dodge)+
+  #geom_jitter(size = 0.1, height = 0, width = 0.1, aes(color = Sex)) + 
+  labs(title = "Genotype")+
+  theme_minimal()+
+  background_grid(major = 'xy', minor = "none") + # add thin horizontal lines 
+  panel_border() + 
+  theme_bw()+
+  labs(x = "genotype", y = paste0(colnames(data)[i]), title = paste0(colnames(data)[i]) ) +
+  stat_summary(fun.y=median, geom="point", size=2, color="black") +
+  theme(legend.position="bottom")+
+  theme_bw() 
+ 
+ggsave(paste0(outpath,"FlatTransparent_" ,colnames(data)[i], "042623.pdf"), plot = last_plot(), device='pdf', scale=1, width=mywidth, height=myheight, unit=c("in"), dpi=200)
+}
+
+
+
+plot<-ggarrange(plotlist =plot_list ,
+          ncol = 1, nrow = length(plot_list), common.legend = TRUE, legend="bottom")
+
+lastplot=annotate_figure(plot, top = text_grob("cardiac_metrics_flat", 
+               color = "black", face = "bold", size = 14))
+
+ggsave(paste0(outpath,prefix,"Diet",'cardiac_metrics_flat042623.pdf'), plot = lastplot, device='pdf', scale=1, width=mywidth, height=10*myheight, unit=c("in"), dpi=200)
+
+
+####regression lines
+
+plot_list = vector(mode = "list", length = length(c(8:15,19,20,21)))
+for (i in c(8:15,19,20,21)) {
+  plot_list[[(i-7)]]<-ggplot(data, aes(x=Age, y=unlist(data[,i]), color=Geno3, fill = Geno3)) +#, alpha=Diet
+  scale_color_manual(values=c('blueviolet', 'chartreuse1', 'red', 'azure3')) + 
+  scale_fill_manual(values=c('blueviolet', 'chartreuse1', 'red', 'azure3'))+
+  geom_point(aes(shape = Geno3)) + 
+  facet_grid(. ~ Geno3) + 
+  stat_smooth(method = "lm") +
+  #stat_cor(aes(color = Genotype), label.x = 3) +  
+  background_grid(major = 'xy', minor = "none") +
+  geom_point(dotsize=2, alpha=0.6, size=2)+
+  theme_minimal()+
+  background_grid(major = 'xy', minor = "none") + # add thin horizontal lines 
+  panel_border() + 
+  theme_bw()+
+  labs(x = "Age", y = paste0(colnames(data)[i]), title = paste0(colnames(data)[i]) ) +
+  theme(legend.position="bottom")
+
+ggsave(paste0(outpath,"AgeLines_" ,colnames(data)[i], "042623.pdf"), plot = last_plot(), device='pdf', scale=1, width=mywidth, height=myheight, unit=c("in"), dpi=200)
+}
+
+####regression lines
+
+####regression lines
+
+mycolors <- c('blueviolet', 'chartreuse1', 'red', 'azure3')
+plot_list = vector(mode = "list", length = length(c(8:15,19,20,21)))
+for (i in c(8:15,19,20,21)) {
+  plot_list[[(i-7)]]<-ggplot(data, aes(x=Mass, y=unlist(data[,i]), color=Geno3, fill = Geno3)) +#, alpha=Diet
+  scale_color_manual(values=c('blueviolet', 'chartreuse1', 'red', 'azure3')) + 
+  scale_fill_manual(values=c('blueviolet', 'chartreuse1', 'red', 'azure3'))+
+  geom_point(aes(shape = Geno3)) + 
+  facet_grid(. ~ Sex) + 
+  stat_smooth(method = "lm") +
+  #stat_cor(aes(color = Genotype), label.x = 3) +  
+  background_grid(major = 'xy', minor = "none") +
+  geom_point(dotsize=2, alpha=0.6, size=2)+
+  theme_minimal()+
+  background_grid(major = 'xy', minor = "none") + # add thin horizontal lines 
+  panel_border() + 
+  theme_bw()+
+  labs(x = "Mass", y = paste0(colnames(data)[i]), title = paste0(colnames(data)[i]) ) +
+  theme(legend.position="bottom")
+
+ggsave(paste0(outpath,"MassLines_" ,colnames(data)[i], "042623.pdf"), plot = last_plot(), device='pdf', scale=1, width=mywidth, height=myheight, unit=c("in"), dpi=200)
+}
+
+####regression lines
+
+mycolors <- c('blueviolet', 'chartreuse1', 'red', 'azure3')
+plot_list = vector(mode = "list", length = length(c(8:15,19,20,21)))
+for (i in c(8:15,19,20,21)) {
+  plot_list[[(i-7)]]<-ggplot(data, aes(x=Mass, y=unlist(data[,i]), color=Sex, fill = Sex)) +#, alpha=Diet
+  scale_color_manual(values=c('blueviolet', 'chartreuse1', 'red', 'azure3')) + 
+  scale_fill_manual(values=c('blueviolet', 'chartreuse1', 'red', 'azure3'))+
+  geom_point(aes(shape = Geno3, alpha=Diet)) + 
+  facet_grid(. ~ Geno3) + 
+  stat_smooth(method = "lm") +
+  #stat_cor(aes(color = Genotype), label.x = 3) +  
+  background_grid(major = 'xy', minor = "none") +
+  geom_point(dotsize=2, alpha=0.6, size=2)+
+  theme_minimal()+
+  background_grid(major = 'xy', minor = "none") + # add thin horizontal lines 
+  panel_border() + 
+  theme_bw()+
+  labs(x = "Mass", y = paste0(colnames(data)[i]), title = paste0(colnames(data)[i]) ) +
+  theme(legend.position="bottom")
+
+ggsave(paste0(outpath,"TestMassLines_" ,colnames(data)[i], "042623.pdf"), plot = last_plot(), device='pdf', scale=1, width=mywidth, height=myheight, unit=c("in"), dpi=200)
+}
+
+####regression lines
+
+####regression lines
+
+mycolors <- c('blueviolet', 'chartreuse1', 'red', 'azure3')
+plot_list = vector(mode = "list", length = length(c(8:15,19,20,21)))
+for (i in c(8:15,19,20,21)) {
+  plot_list[[(i-7)]]<-ggplot(data, aes(x=Mass, y=unlist(data[,i]), color=Geno3, fill=Geno3)) +#, alpha=Diet
+  scale_color_manual(values=c('blueviolet', 'chartreuse1', 'red', 'azure3')) + 
+  scale_fill_manual(values=c('blueviolet', 'chartreuse1', 'red', 'azure3'))+
+  geom_point(aes(shape = Geno3, alpha=Diet)) + 
+  facet_grid(. ~ Sex) + 
+  stat_smooth(method = "lm") +
+  #stat_cor(aes(color = Genotype), label.x = 3) +  
+  background_grid(major = 'xy', minor = "none") +
+  geom_point(dotsize=2, alpha=0.6, size=2)+
+  theme_minimal()+
+  background_grid(major = 'xy', minor = "none") + # add thin horizontal lines 
+  panel_border() + 
+  theme_bw()+
+  labs(x = "Mass", y = paste0(colnames(data)[i]), title = paste0(colnames(data)[i]) ) +
+  theme(legend.position="bottom")
+
+ggsave(paste0(outpath,"TestSexSimpleMassLines_" ,colnames(data)[i], "042623.pdf"), plot = last_plot(), device='pdf', scale=1, width=mywidth, height=myheight, unit=c("in"), dpi=200)
+}
+
+####regression lines
+
+####regression lines
+
+mycolors <- c('blueviolet', 'chartreuse1', 'red', 'azure3')
+
+plot_list = vector(mode = "list", length = length(c(8:15,19,20,21)))
+for (i in c(8:15,19,20,21)) {
+  plot_list[[(i-7)]]<-ggplot(data, aes(x=Age, y=unlist(data[,i]), color=Diet, fill = Diet)) +#, alpha=Diet
+  scale_color_manual(values=c('blueviolet', 'chartreuse1', 'red', 'azure3')) + 
+  scale_fill_manual(values=c('blueviolet', 'chartreuse1', 'red', 'azure3'))+
+  geom_point(aes(shape = Geno3)) + 
+  facet_grid(. ~ Geno3) + 
+  stat_smooth(method = "lm") +
+  #stat_cor(aes(color = Genotype), label.x = 3) +  
+  background_grid(major = 'xy', minor = "none") +
+  geom_point(dotsize=2, alpha=0.6, size=2)+
+  theme_minimal()+
+  background_grid(major = 'xy', minor = "none") + # add thin horizontal lines 
+  panel_border() + 
+  theme_bw()+
+  labs(x = "Age", y = paste0(colnames(data)[i]), title = paste0(colnames(data)[i]) ) +
+  theme(legend.position="bottom")
+
+ggsave(paste0(outpath,"TestAgeLines_" ,colnames(data)[i], "042623.pdf"), plot = last_plot(), device='pdf', scale=1, width=mywidth, height=myheight, unit=c("in"), dpi=200)
+}
+
+####regression lines
+
+
+
+
+```
+
