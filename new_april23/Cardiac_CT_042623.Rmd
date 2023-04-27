@@ -259,7 +259,7 @@ count <- data %>%
 #   summarise(count = n())
 
 plot_list = vector(mode = "list", length = length(8:15))
-for (i in 8:15) {
+for (i in c(9:15,19,20)) {
 
 mycolors <- c('blueviolet', 'chartreuse1', 'red', 'azure3')
 plot_list[[(i-7)]]<-ggplot(data, aes(x=Geno3, y=unlist(data[,i]), fill = Sex, alpha=Sex)) +
