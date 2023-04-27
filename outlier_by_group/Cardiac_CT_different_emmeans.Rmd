@@ -382,8 +382,8 @@ plot_list[[(i-7)]]<-ggplot(data, aes(x=Geno3, y=unlist(data[,i]), fill = HN, alp
   geom_violin(inherit.aes=TRUE,position=dodge) +
   scale_color_manual(values=mycolors)+
   scale_fill_manual(values=mycolors)+
-  #facet_grid(. ~ Diet)  +
-  facet_grid( Sex~Diet)+
+  facet_grid(. ~ Diet)  +
+  #facet_grid( Sex~Diet)+
   #facet_wrap(~Diet) +
   scale_alpha_discrete(range = c(0.4,0.8)) +
   geom_boxplot(color="black", outlier.color="black", width=0.2, alpha=.8, position=dodge) +
