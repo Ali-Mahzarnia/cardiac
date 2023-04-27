@@ -291,7 +291,7 @@ anova(lm1)
 #res<-emmeans(lm1, list(pairwise ~ factor(Geno3)|factor(Diet)*factor(Sex)), adjust="tukey")
 #contrast(res[[1]], "eff", by = "Geno3")
 
-posthoc2 <- na.omit((emmeans(lm1, list(pairwise ~ Diet|Geno3), adjust="tukey")$`emmeans of Diet | Geno3`)) 
+posthoc2 <- na.omit((emmeans(lm1, list(pairwise ~ Diet|Geno3), adjust="tukey")$`pairwise differences of Diet | Geno3`)) 
 
 #emms1 <- emmeans(lm1, ~ Geno3*Diet | Sex)
 #con1 <- contrast(emms1, interaction = "pairwise")
