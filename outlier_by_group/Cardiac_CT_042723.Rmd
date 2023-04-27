@@ -1,6 +1,5 @@
 ---
 title: "Cardiac_CT HN: both diets"
-author: "Alex Badea"
 date: "01/17/23"
 output: pdf_document
 toc: true
