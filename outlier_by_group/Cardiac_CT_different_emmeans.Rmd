@@ -121,7 +121,7 @@ combo_m <- geno_combined %>%
   filter(Sex == "Male")
 
 
-dodge <- position_dodge(width = 1)
+dodge <- position_dodge(width = 0.5 )
 
 mywidth<-8
 myheight<-4
@@ -383,7 +383,7 @@ plot_list[[(i-7)]]<-ggplot(data, aes(x=Geno3, y=unlist(data[,i]), fill = HN, alp
   #facet_wrap(~Diet) +
   scale_alpha_discrete(range = c(0.4,0.8)) +
   geom_boxplot(color="black", outlier.color="black", width=0.2, alpha=.8, position=dodge) +
-  geom_dotplot(binaxis='y', stackdir='center', dotsize=2, alpha=0.6, position=dodge)+
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=1.5, alpha=0.6, position=dodge)+
   #geom_jitter(size = 0.1, height = 0, width = 0.1, aes(color = Sex)) + 
   labs(title = "VOL")+
   theme_minimal()+
@@ -391,7 +391,7 @@ plot_list[[(i-7)]]<-ggplot(data, aes(x=Geno3, y=unlist(data[,i]), fill = HN, alp
   panel_border() + 
   theme_bw()+
   labs(x = "genotype", y = paste0(colnames(data)[i]), title = paste0(colnames(data)[i]) ) +
-  stat_summary(fun.y=median, geom="point", size=2, color="black") +
+  stat_summary(fun.y=median, geom="point", size=2, color="black", position=dodge) +
   theme(legend.position="bottom")+
   theme_bw() 
  
