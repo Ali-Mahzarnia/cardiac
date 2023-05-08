@@ -243,7 +243,7 @@ for (gen in unique(data$Geno3)) {
    temp  =temp[-index, ]}
    
    assign(paste0(gen,sex,"_data"), temp) 
-   # print(paste("cut of of ",gen," " ,sex, " is ", detection(temp[,i])$bounds[1] , "-",  detection(temp[,i]))$bounds[2] ) 
+    print(paste("cut of of ",gen," " ,sex, " is ", detection(temp[,i])$bounds[1] , "-",  detection(temp[,i])$bounds[2] ) )
   }
 }
 
@@ -342,6 +342,35 @@ count <- data %>%
 plot_list = vector(mode = "list", length = length(c(8:15,19,20,21)))
 j=1
 for (i in c(8:15,19,20,21)) {
+  
+  
+data = as.data.frame(data)
+dim(data)
+data= na.omit(data)
+for (gen in unique(data$Geno3)) {
+  for (sex in unique(data$Sex)) {
+    temp = data[data$Geno3==gen & data$Sex==sex,]
+    
+   index =  detection(temp[,i])$index
+   if (length(index)>0){
+   temp  =temp[-index, ]}
+   
+   assign(paste0(gen,sex,"_data"), temp) 
+    print(paste("cut of of ",gen," " ,sex, " is ", detection(temp[,i])$bounds[1] , "-",  detection(temp[,i])$bounds[2] ) )
+  }
+}
+
+no_outlr_data = NA
+
+for (gen in unique(data$Geno3)) {
+  for (sex in unique(data$Sex)) {
+
+   tempp = get(paste0(gen,sex,"_data")) 
+no_outlr_data = rbind(no_outlr_data, tempp)
+  }
+}
+
+
 
 mycolors <- c('blueviolet', 'chartreuse1', 'red', 'azure3')
 plot_list[[j]]<-ggplot(data, aes(x=Geno3, y=unlist(data[,i]), fill = Sex, alpha=Sex)) +
@@ -431,6 +460,35 @@ mycolors <- c('blueviolet', 'chartreuse1', 'red', 'azure3')
 plot_list = vector(mode = "list", length = length(c(8:15,19,20,21)))
 j=1
 for (i in c(8:15,19,20,21)) {
+  
+  
+data = as.data.frame(data)
+dim(data)
+data= na.omit(data)
+for (gen in unique(data$Geno3)) {
+  for (sex in unique(data$Sex)) {
+    temp = data[data$Geno3==gen & data$Sex==sex,]
+    
+   index =  detection(temp[,i])$index
+   if (length(index)>0){
+   temp  =temp[-index, ]}
+   
+   assign(paste0(gen,sex,"_data"), temp) 
+    print(paste("cut of of ",gen," " ,sex, " is ", detection(temp[,i])$bounds[1] , "-",  detection(temp[,i])$bounds[2] ) )
+  }
+}
+
+no_outlr_data = NA
+
+for (gen in unique(data$Geno3)) {
+  for (sex in unique(data$Sex)) {
+
+   tempp = get(paste0(gen,sex,"_data")) 
+no_outlr_data = rbind(no_outlr_data, tempp)
+  }
+}
+
+
 
   plot_list[[j]]=ggplot(data, aes(x=Geno3, y=unlist(data[,i]), fill = Diet, alpha=Diet)) +
   geom_violin(inherit.aes=TRUE,position=dodge) +
@@ -528,6 +586,64 @@ mycolors <- c('blueviolet', 'chartreuse1', 'red', 'azure3')
 plot_list = vector(mode = "list", length = length(c(8:15,19,20,21)))
 j=1
 for (i in c(8:15,19,20,21)) {
+  
+  
+  
+data = as.data.frame(data)
+dim(data)
+data= na.omit(data)
+for (gen in unique(data$Geno3)) {
+  for (sex in unique(data$Sex)) {
+    temp = data[data$Geno3==gen & data$Sex==sex,]
+    
+   index =  detection(temp[,i])$index
+   if (length(index)>0){
+   temp  =temp[-index, ]}
+   
+   assign(paste0(gen,sex,"_data"), temp) 
+    print(paste("cut of of ",gen," " ,sex, " is ", detection(temp[,i])$bounds[1] , "-",  detection(temp[,i])$bounds[2] ) )
+  }
+}
+
+no_outlr_data = NA
+
+for (gen in unique(data$Geno3)) {
+  for (sex in unique(data$Sex)) {
+
+   tempp = get(paste0(gen,sex,"_data")) 
+no_outlr_data = rbind(no_outlr_data, tempp)
+  }
+}
+
+
+
+data = as.data.frame(data)
+dim(data)
+data= na.omit(data)
+for (gen in unique(data$Geno3)) {
+  for (sex in unique(data$Sex)) {
+    temp = data[data$Geno3==gen & data$Sex==sex,]
+    
+   index =  detection(temp[,i])$index
+   if (length(index)>0){
+   temp  =temp[-index, ]}
+   
+   assign(paste0(gen,sex,"_data"), temp) 
+    print(paste("cut of of ",gen," " ,sex, " is ", detection(temp[,i])$bounds[1] , "-",  detection(temp[,i])$bounds[2] ) )
+  }
+}
+
+no_outlr_data = NA
+
+for (gen in unique(data$Geno3)) {
+  for (sex in unique(data$Sex)) {
+
+   tempp = get(paste0(gen,sex,"_data")) 
+no_outlr_data = rbind(no_outlr_data, tempp)
+  }
+}
+
+
   plot_list[[j]]<-ggplot(data, aes(x=Mass, y=unlist(data[,i]), color=Sex, fill = Sex)) +#, alpha=Diet
   scale_color_manual(values=c('blueviolet', 'chartreuse1', 'red', 'azure3')) + 
   scale_fill_manual(values=c('blueviolet', 'chartreuse1', 'red', 'azure3'))+
